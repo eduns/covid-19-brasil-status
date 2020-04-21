@@ -23,3 +23,6 @@ Consultando dados
 
 ![Uma cidade](images/covid_bot_escolher_cidade.png)
 ![Resultado](images/covid_bot_resultado_cidade.png)
+
+
+>Fonte: [Brasil.IO](https://brasil.io/dataset/covid19/caso/)
