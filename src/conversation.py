@@ -34,16 +34,19 @@ MENU_INFO, CHOOSE_UF, ALL_UFS, CHOOSE_CITY = range(4)
 def start(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Olá, tudo bem?\nSou o COVID Bot e posso lhe informar sobre os números da pandemia de COVID-19 no Brasil.\nDigite */ajuda* para saber mais",
-            parse_mode=ParseMode.MARKDOWN
+        text="Olá, tudo bem?\nSou o COVID Bot e posso lhe informar sobre os números da pandemia de COVID-19 no Brasil.\n\nDigite */ajuda* para saber mais",
+        parse_mode=ParseMode.MARKDOWN
     )
 
 
 def info_help(update, context):
-    text = "Digite */casos* para buscar informações sobre a COVID-19 no Brasil e veja dados:\n"
-    text += "- De todos os estados\n"
-    text += "- De um estado\n"
-    text += "- De uma cidade específica"
+    text = "Digite:\n\n"
+    text += "*/casos* para buscar informações sobre a COVID-19 no Brasil e veja dados:\n"
+    text += "   - De todos os estados\n"
+    text += "   - De um estado\n"
+    text += "   - De uma cidade específica\n\n"
+
+    text += "*/sair* para terminar a conversa"
 
     context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -87,12 +90,14 @@ def show_info(update, context, data):
         if update.callback_query is None:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"Desculpe. Não encontrei dados da cidade de {update.message.text}. Veja se o nome da cidade está certo"
+                text=f"Desculpe. Não encontrei dados da cidade de *{' - '.join(update.message.text.split())}*. Veja se o nome da cidade está certo",
+                parse_mode=ParseMode.MARKDOWN
             )
         else:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"Desculpe. Não encontrei dados de {update.callback_query.data}."
+                text=f"Desculpe. Não encontrei os dados de *{update.callback_query.data}*.",
+                parse_mode=ParseMode.MARKDOWN
             )
 
         return
@@ -116,7 +121,7 @@ def format_data(data):
     formatted_messages = list()
 
     for info in data['results']:
-        message = "Em *{}*:\n\n"
+        message = "Em *{}*" + ("* - {}*".format(info['state']) if info['city'] is not None else '') + ":\n\n"
         message += "{} {} casos confirmados\n{} {} " + ('mortes' if info['deaths'] > 1 else 'morte') + "\n"
         message += "{} {}% de mortalidade\n\n{} *dados de {}*"
 
@@ -185,7 +190,14 @@ def handle_menu(update, context):
         return ALL_UFS
 
     elif query.data == 'choose_city':
-        query.edit_message_text(text="Digite o nome da cidade, fazendo a distinção de maiúsculas, minúsculas e acentuação:")
+        text = "Digite o nome da cidade, fazendo a distinção de maiúsculas, minúsculas e acentuação "
+        text += "seguido de um espaço em branco e as duas letras da sigla do estado. Ex:\n\n"
+        text += "   - *São Paulo SP* ou *São Paulo sp*\n"
+        text += "   - *Rio de Janeiro RJ* ou *Rio de Janeiro rj*"
+        query.edit_message_text(
+            text=text,
+            parse_mode=ParseMode.MARKDOWN
+        )
 
         return CHOOSE_CITY
 
@@ -205,11 +217,13 @@ def handle_menu(update, context):
 def handle_choose_city(update, context):
     """ Buscar dados de uma cidade """
 
-    city = update.message.text
-    
-    update.message.reply_text(f'Certo. Irei buscar dados da cidade de {city}. Aguarde um momento...')
+    values = update.message.text.split()
+    uf = values.pop(-1).upper()
+    city = ' '.join(values)
 
-    data = get_data(place_type='city', city=city)
+    update.message.reply_text(f'Certo. Irei buscar dados da cidade de {city} - {uf}. Aguarde um momento...')
+
+    data = get_data(place_type='city', uf=uf, city=city)
 
     show_info(update, context, data)
 
@@ -292,7 +306,7 @@ def main():
             MENU_INFO: [CallbackQueryHandler(handle_menu)],
             CHOOSE_UF: [CallbackQueryHandler(handle_choose_uf)],
             ALL_UFS: [CallbackQueryHandler(handle_all_ufs)],
-            CHOOSE_CITY: [MessageHandler(Filters.regex(r"^[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ ]+$"),
+            CHOOSE_CITY: [MessageHandler(Filters.regex(r"^([A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ ]+) ([A-Ta-t][A-Ta-t])$"),
                 handle_choose_city)]
         },
 
