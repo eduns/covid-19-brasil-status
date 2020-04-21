@@ -1,11 +1,10 @@
 from telegram import (
-    InlineQueryResultArticle, InputTextMessageContent,
     InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 )
 
 from telegram.ext import (
     Updater, Filters, CommandHandler, MessageHandler,
-    InlineQueryHandler, CallbackQueryHandler, ConversationHandler
+    CallbackQueryHandler, ConversationHandler
 )
 
 from telegram.error import (
